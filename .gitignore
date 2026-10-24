@@ -3,13 +3,16 @@
 .env.local
 *.env
 
-# SQLite Databases & Storage (except golden hash verification specs)
+# SQLite Databases & Storage
 *.db
 *.db-journal
 *.db-wal
 *.db-shm
 *.sqlite
 *.sqlite3
+
+# Explicitly track deterministic golden baseline databases for reset scripts
+!backend/db_golden/*.golden.db
 
 # Python & Virtual Environments
 .venv/
