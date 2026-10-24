@@ -1,0 +1,13 @@
+flowchart TD
+    A["Store Manager Opens Alerts Tab"] --> B["GET /api/v1/alerts?store_id=X"]
+    B --> C{"Alerts Found?"}
+    C -- "No" --> D["Render Empty State: No Spoilage Alerts"]
+    C -- "Yes" --> E["Render Spoilage Alert Cards"]
+    E --> F["Display Urgency Badge: Expires in Xd & Suggested Markdown %"]
+    F --> G{"User Action"}
+    G -- "Dismiss" --> H["POST /api/v1/alerts/{batch_id}/dismiss"]
+    H --> I["Remove Card with Animation & Decrement Badge"]
+    G -- "Accept Markdown" --> J["POST /api/v1/alerts/{batch_id}/markdown"]
+    J --> K["Update DB Batch current_discount_pct"]
+    K --> L["Card Transitions to: Markdown Applied -XX%"]
+    L --> M["Hide Action Buttons & Persist Status in Local/Server State"]

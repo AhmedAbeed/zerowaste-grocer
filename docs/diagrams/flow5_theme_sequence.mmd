@@ -1,0 +1,21 @@
+sequenceDiagram
+    autonumber
+    actor User as User (Any Role)
+    participant Btn as ThemeToggleButton
+    participant Notifier as ThemeModeNotifier (Riverpod)
+    participant Hive as Hive ('settings_box')
+    participant App as MaterialApp.router
+
+    User->>Btn: Taps Theme Toggle Button
+    Btn->>Notifier: toggleTheme(context)
+    Notifier->>Notifier: Compute next mode (light -> dark)
+    Notifier->>Hive: box.put('theme_mode', 'dark')
+    Hive-->>Notifier: Write confirmed
+    Notifier->>App: state = ThemeMode.dark
+    App-->>User: Seamless dark theme rendered (Background #121212, Surface #1E1E1E)
+    
+    Note over User,App: Later session / Page Reload
+    User->>App: Opens App / Reloads Browser
+    App->>Hive: box.get('theme_mode')
+    Hive-->>App: 'dark'
+    App-->>User: Starts directly in Dark Mode

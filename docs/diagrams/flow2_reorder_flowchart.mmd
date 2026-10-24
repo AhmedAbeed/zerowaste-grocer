@@ -1,0 +1,16 @@
+flowchart TD
+    A["Store Manager Opens Reorder Tab"] --> B["GET /api/v1/replenishment/recommendations?store_id=X"]
+    B --> C["Render Recommendation Cards with ML Recommended Qty"]
+    C --> D["User Taps 'Why this amount?'"]
+    D --> E["Expand XAI Panel: Natural Language Rationale + Feature Drivers"]
+    E --> F{"Approval Decision"}
+    F -- "Direct Approval" --> G["User Taps 'Approve'"]
+    G --> H["POST /api/v1/replenishment/orders (approved_qty = rec_qty)"]
+    F -- "Manual Override" --> I["User Taps 'Override'"]
+    I --> J["Input Custom Qty & Select Override Reason"]
+    J --> K["User Taps 'Confirm Override'"]
+    K --> L["POST /api/v1/replenishment/orders (with override_reason & qty)"]
+    H --> M["Card Shows 'Approved ✓' Badge & Action Buttons Disabled"]
+    L --> N["Card Shows 'Overridden ✓' Badge & Action Buttons Disabled"]
+    M --> O["Decrement 'Approve All' Counter"]
+    N --> O

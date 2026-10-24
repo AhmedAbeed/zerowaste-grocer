@@ -1,0 +1,25 @@
+sequenceDiagram
+    autonumber
+    actor Mgr as Store Manager
+    participant UI as AlertsScreen (Flutter)
+    participant Repo as AlertsRepository
+    participant API as FastAPI Backend
+    participant DB as SQLite Database
+
+    Mgr->>UI: Selects Alerts Tab
+    UI->>Repo: getAlerts(storeId)
+    Repo->>API: GET /api/v1/alerts?store_id=1
+    API->>DB: Query product_batches & alerts
+    DB-->>API: Active batches near expiration
+    API-->>Repo: JSON SpoilageAlerts list
+    Repo-->>UI: AsyncValue.data(alerts)
+    UI-->>Mgr: Renders Alert Cards with Suggested Markdown %
+    
+    Mgr->>UI: Clicks "Accept Markdown"
+    UI->>Repo: applyMarkdown(batchId, discountPct)
+    Repo->>API: POST /api/v1/alerts/{batch_id}/markdown
+    API->>DB: UPDATE product_batches SET current_discount_pct = ...
+    DB-->>API: Batch updated
+    API-->>Repo: 200 OK (status: accepted)
+    Repo-->>UI: Success
+    UI-->>Mgr: Card displays "Markdown Applied -XX%" badge

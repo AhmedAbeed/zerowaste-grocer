@@ -1,0 +1,24 @@
+sequenceDiagram
+    autonumber
+    actor Aud as Inventory Auditor
+    participant UI as CatalogScreen (Flutter)
+    participant Dlg as ClosingAuditDialog
+    participant Repo as CatalogRepository
+    participant API as FastAPI Backend
+    participant DB as SQLite Database
+
+    Aud->>UI: Logs in (Catalog Screen displayed)
+    Aud->>UI: Taps "Audit" FAB
+    UI->>Dlg: Opens ClosingAuditDialog(products)
+    Dlg-->>Aud: Lists products with SKU & recorded stock
+    
+    Aud->>Dlg: Enters physical count (e.g. 18 instead of 20)
+    Aud->>Dlg: Taps "Submit Audit"
+    Dlg->>Repo: submitAudit(storeId, items)
+    Repo->>API: POST /api/v1/inventory/audit
+    API->>DB: INSERT INTO audit_logs & UPDATE product stock
+    DB-->>API: Records committed
+    API-->>Repo: 200 OK (variance_recorded)
+    Repo-->>Dlg: Success
+    Dlg-->>UI: Dialog Pops
+    UI-->>Aud: SnackBar "Audit submitted" displayed

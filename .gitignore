@@ -1,0 +1,60 @@
+# Environment & Secrets
+.env
+.env.local
+*.env
+
+# SQLite Databases & Storage (except golden hash verification specs)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Python & Virtual Environments
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+
+# Datasets (Excluded under CC BY-NC-ND 4.0 license requirements)
+backend/data set/
+data set/
+*.csv
+
+# Flutter & Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+.pub-cache/
+app_Mena/build/
+build/
+*.dill
+*.track.dill
+
+# Android & Native Build Outputs
+.gradle/
+*.apk
+*.aab
+local.properties
+Captures/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Unrelated project folders
+admin/
+yehya/
+MyApplicationa/
+
+# Operating System Files
+.DS_Store
+Thumbs.db

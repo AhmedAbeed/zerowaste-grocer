@@ -1,0 +1,13 @@
+flowchart TD
+    A["Inventory Auditor Logs In"] --> B["Restricted Navigation Shell: Catalog Only"]
+    B --> C["User Taps 'Audit' Floating Action Button"]
+    C --> D["Full-Screen Closing Inventory Audit Dialog Opens"]
+    D --> E["Form Pre-populated with Active Catalog Products"]
+    E --> F["Auditor Inputs Physical Stock Count & Selects Reason for Variance"]
+    F --> G["Auditor Taps 'Submit Audit'"]
+    G --> H{"Validation Pass?"}
+    H -- "No" --> I["Show Validation Errors"]
+    H -- "Yes" --> J["POST /api/v1/inventory/audit"]
+    J --> K["Backend Computes Shrinkage / Variance & Commits Audit Record"]
+    K --> L["Close Dialog & Display Success SnackBar: 'Audit submitted'"]
+    L --> M["Catalog Product Stock Values Auto-Refreshed"]

@@ -1,0 +1,21 @@
+sequenceDiagram
+    autonumber
+    actor Mgr as Store Manager
+    participant Poll as Background Poller (Riverpod)
+    participant UI as NavigationBar (Alerts Tab)
+    participant API as FastAPI Backend
+    participant DB as SQLite Database
+
+    Poll->>API: GET /api/v1/notifications?store_id=1&unread_only=true
+    API->>DB: SELECT COUNT(*) WHERE read=false
+    DB-->>API: unreadCount = 3
+    API-->>Poll: 200 OK (notifications: [...], unreadCount: 3)
+    Poll->>UI: notificationsStateProvider emits unreadCount=3
+    UI-->>Mgr: Badge "3" appears on Alerts tab icon
+    
+    Mgr->>UI: Taps Alerts Tab
+    UI->>API: POST /api/v1/notifications/read-all?store_id=1
+    API->>DB: UPDATE notifications SET read=true
+    DB-->>API: All marked read
+    API-->>UI: 200 OK
+    UI-->>Mgr: Badge disappears immediately

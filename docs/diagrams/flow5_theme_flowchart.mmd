@@ -1,0 +1,14 @@
+flowchart TD
+    A["App Initialization (main.dart)"] --> B["Hive.initFlutter() & Hive.openBox('settings_box')"]
+    B --> C["ThemeModeNotifier Reads 'theme_mode' Key"]
+    C --> D{"Saved Value?"}
+    D -- "'dark'" --> E["State = ThemeMode.dark"]
+    D -- "'light'" --> F["State = ThemeMode.light"]
+    D -- "Null/Other" --> G["State = ThemeMode.system"]
+    E --> H["MaterialApp Uses AppTheme.darkTheme"]
+    F --> I["MaterialApp Uses AppTheme.lightTheme"]
+    H --> J["User Taps ThemeToggleButton in AppBar"]
+    I --> J
+    J --> K["themeModeProvider.notifier.toggleTheme()"]
+    K --> L["Box.put('theme_mode', newMode)"]
+    L --> M["Theme Re-renders Instantly with Zero Flash"]

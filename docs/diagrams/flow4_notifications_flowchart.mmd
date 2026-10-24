@@ -1,0 +1,11 @@
+flowchart TD
+    A["App Starts / Store Manager Authenticated"] --> B["Periodic Timer / Pull-to-Refresh Triggered"]
+    B --> C["GET /api/v1/notifications?store_id=X&unread_only=true"]
+    C --> D{"Unread Notifications > 0?"}
+    D -- "Yes" --> E["Display Badge Count on Alerts Navigation Item"]
+    E --> F["Display In-App Toast for Critical Expiry Events"]
+    D -- "No" --> G["Hide Navigation Badge"]
+    E --> H["User Taps Alerts Tab"]
+    H --> I["POST /api/v1/notifications/read-all"]
+    I --> J["Backend Marks All Notifications as Read for Store"]
+    J --> K["Alerts Navigation Badge Cleared"]

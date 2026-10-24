@@ -1,0 +1,28 @@
+sequenceDiagram
+    autonumber
+    actor Mgr as Store Manager
+    participant UI as ReorderScreen (Flutter)
+    participant Repo as ReorderRepository
+    participant API as FastAPI Backend
+    participant ML as ML Forecast Engine
+    participant DB as SQLite Database
+
+    Mgr->>UI: Navigates to Reorder Tab
+    UI->>Repo: getRecommendations(storeId)
+    Repo->>API: GET /api/v1/replenishment/recommendations?store_id=1
+    API->>ML: Compute Forecasts & Safety Stock
+    ML-->>API: Recommendations + XAI Feature Drivers
+    API-->>Repo: JSON Recommendations
+    Repo-->>UI: RecommendationCard list rendered
+    
+    Mgr->>UI: Taps "Override" on Card
+    UI-->>Mgr: Opens Modal (Adjust Quantity, Select Reason)
+    Mgr->>UI: Sets Qty=120, Reason="Supplier Promotion"
+    Mgr->>UI: Clicks "Confirm Override"
+    UI->>Repo: approveOrder(productId, qty=120, reason)
+    Repo->>API: POST /api/v1/replenishment/orders
+    API->>DB: INSERT INTO replenishment_orders
+    DB-->>API: Order recorded
+    API-->>Repo: 200 OK (order_id, status="approved")
+    Repo-->>UI: State updated in Riverpod
+    UI-->>Mgr: Card transitions to "Overridden ✓"
