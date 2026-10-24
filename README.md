@@ -118,8 +118,9 @@ flutter analyze
 # Run Flutter unit & contrast tests
 flutter test
 
-# Run Playwright E2E Dark Mode Verification
-python F:\Temp\qa_dark\verify_dark_playwright.py
+# Run API test suite
+cd ../backend
+pytest test_api.py
 ```
 
 ---
