@@ -31,6 +31,9 @@
 - **Offline & Low-Bandwidth Resilience**:
   - Hive offline action queuing with automatic synchronization when connectivity is restored.
 
+> 📊 **Looking for the Architectural Diagrams & User Flows?**  
+> Check out the complete [**User Flow Specification & Diagrams (docs/USER_FLOW.md)**](docs/USER_FLOW.md) featuring 10 interactive Mermaid flowcharts, sequence diagrams, and role-based permissions matrix.
+
 ---
 
 ## Seeded User Accounts
