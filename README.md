@@ -1,152 +1,225 @@
-# ZeroWaste Grocer
+# ZeroWaste Grocer 🥦🛒
 
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Flutter](https://img.shields.io/badge/Client-Flutter_3.24+-02569B.svg?logo=flutter&logoColor=white)](https://flutter.dev)
 [![LightGBM](https://img.shields.io/badge/ML-LightGBM_Quantile-FFA000.svg)](https://lightgbm.readthedocs.io/)
+[![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.14-3776AB.svg?logo=python&logoColor=white)](https://python.org)
 [![WCAG 2.1 AA](https://img.shields.io/badge/Accessibility-WCAG_2.1_AA_Compliant-success.svg)](https://www.w3.org/WAI/WCAG21/quickref/)
-[![License: CC BY-NC-ND 4.0](https://img.shields.io/badge/License-CC_BY--NC--ND_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-nd/4.0/)
 
-**ZeroWaste Grocer** is an enterprise AI-powered grocery inventory management and waste prevention platform. It combines machine learning demand forecasting (LightGBM quantile regression), dynamic expiration markdown execution, explainable AI (XAI) replenishment recommendations, and closing inventory stock audits to minimize retail food waste while maximizing store operational margins.
-
----
-
-## Key Features
-
-- **Automated Spoilage Alerts & Dynamic Markdown**:
-  - Batches expiring within $\le 3$ days are automatically surfaced with urgency tags.
-  - Recommended markdowns (10% to 50%) calculated dynamically to clear surplus before spoilage.
-  - One-click markdown application instantly updates database pricing.
-- **Explainable AI Replenishment (XAI)**:
-  - 7-day quantile demand forecasting built with 194 features (lag sales, rolling statistics, calendar seasonality, price elasticity).
-  - Expandable *"Why this amount?"* panels displaying natural language rationale and top feature impact drivers.
-  - Full support for supervisor manual overrides with mandatory reason recording.
-- **Role-Based Access Control (RBAC)**:
-  - Four distinct enterprise roles: **Inventory Clerk**, **Inventory Auditor**, **Store Manager**, and **System Administrator**.
-  - Strict symmetric authorization on Flutter client navigation and FastAPI backend endpoints.
-- **Real-Time Sustainability & Waste KPIs**:
-  - Live tracking of Projected Waste Exposure, Units at Risk, Waste Trend Charts, CO₂e Saved, and Kilograms Rescued.
-- **Accessible Dual Theme (Light & Dark Mode)**:
-  - WCAG 2.1 AA compliant contrast ratios across all text elements ($\ge 14.8:1$) and chart series ($\ge 5.3:1$).
-  - One-click theme toggle persisted locally via Hive key-value storage (`settings_box`).
-- **Offline & Low-Bandwidth Resilience**:
-  - Hive offline action queuing with automatic synchronization when connectivity is restored.
+**ZeroWaste Grocer** is an enterprise AI-powered retail grocery inventory management and waste-reduction platform. It combines Machine Learning demand forecasting (**LightGBM quantile regression** with 194 engineered features), dynamic expiration markdown execution, Explainable AI (**TreeSHAP**) replenishment recommendations, and physical closing stock audits to eliminate perishable food waste while safeguarding grocery retail profit margins.
 
 ---
 
-## Machine Learning & Pipeline Notes
+## ⚡ Quickstart Guide (Run in 3 Minutes)
 
-1. **Model Architecture & Regularization**: The demand forecasting engine uses quantile regression with L2 regularization to control variance and prevent overfitting across high-dimensional feature spaces.
-2. **Leakage Prevention in Feature Engineering**: Rolling statistics (`sales_rolling_mean_7`, `sales_rolling_mean_14`) are strictly computed with a `shift(1)` lag offset, ensuring the target forecast day is never included in the historical window.
-3. **Discrepancy Logging vs Retraining**: The `/ai/ultra/feedback` endpoint logs prediction discrepancies and telemetry to the `ModelFeedback` table for performance auditing and scheduled offline evaluation; it does not perform automated online retraining in production.
+### Step 1: Run the Backend API
 
-> 📊 **Looking for the Architectural Diagrams & User Flows?**  
-> Check out the complete [**User Flow Specification & Diagrams (docs/USER_FLOW.md)**](docs/USER_FLOW.md) featuring 10 interactive Mermaid flowcharts, sequence diagrams, and role-based permissions matrix.
-
----
-
-## Seeded User Accounts
-
-The system comes pre-seeded with deterministic realistic accounts:
-
-| Role | Email | Password | Assigned Store | Core Permissions |
-| :--- | :--- | :--- | :--- | :--- |
-| **Inventory Clerk** | `clerk@zerowaste.com` | `clerk123` | Store #1 | Restricted access: Catalog inspection and Incoming Shipment registration dialog only |
-| **Inventory Auditor** | `auditor@zerowaste.com` | `auditor123` | Store #1 | Restricted access: Catalog inspection and Closing Inventory Stock Audit dialog only |
-| **Store Manager** | `manager@zerowaste.com` | `password123` | Store #1 (Metro Downtown) | Full store oversight: Dashboard, Catalog (read-only inspection, no Audit/Add Shipment), Reorder (Approve/Override), Alerts (Accept/Dismiss), Analytics, Broadcasts |
-| **System Admin** | `admin@zerowaste.com` | `admin123` | All Stores (1, 2, 3) | Multi-store oversight: Store switcher dropdown, Enterprise Dashboard, Global Catalog, Enterprise Branches, Broadcasts |
-
----
-
-## Technology Stack
-
-- **Frontend Client**: Flutter (Web, iOS, Android), Riverpod 2.5 State Management, GoRouter, FlChart, Hive Flutter.
-- **Backend API**: FastAPI, Python 3.10+, SQLAlchemy, Pydantic v2, Uvicorn, PassLib (Bcrypt), PyJWT.
-- **Machine Learning**: LightGBM (Quantile Loss), Scikit-Learn, Pandas, NumPy.
-- **Storage**: SQLite with deterministic golden baseline restore scripts.
-- **Quality & E2E**: Playwright (Headless Chromium, Video Recording, Trace Viewer), Flutter Test Suite.
-
----
-
-## Getting Started
-
-### 1. Prerequisites
-- Python 3.10 or higher (Python 3.14 compatible)
-- Flutter SDK 3.24 or higher
-- Google Chrome (for Flutter Web and Playwright testing)
-
-### 2. Backend Setup
+1. Open a terminal in the `backend/` folder:
 ```bash
-# Navigate to backend directory
+cd backend
+```
+
+2. Create and activate a Python virtual environment:
+```bash
+# Windows (PowerShell):
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+# Linux / macOS:
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+4. Seed the SQLite database with realistic stores, products, batches, and users:
+```bash
+python seed_db.py
+```
+
+5. Launch the FastAPI server:
+```bash
+python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+> 🌐 **Interactive API Documentation (Swagger)**: Open [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) in your browser.
+
+---
+
+### Step 2: Run the Flutter Client
+
+1. Open a second terminal in the `app_Mena/` folder:
+```bash
+cd app_Mena
+```
+
+2. Fetch Flutter packages:
+```bash
+flutter pub get
+```
+
+3. Choose your target platform:
+
+#### Option A: Run on Google Chrome (Web)
+```bash
+flutter run -d chrome
+```
+
+#### Option B: Run on Android Emulator
+```bash
+# If using an Android Emulator, forward the backend port:
+adb reverse tcp:8000 tcp:8000
+
+# Run the app:
+flutter run
+```
+
+#### Option C: Run on Windows Desktop
+```bash
+flutter run -d windows
+```
+
+---
+
+## 🔑 Demo User Accounts & Roles
+
+The system comes pre-seeded with 4 distinct roles enforcing symmetric frontend/backend **Role-Based Access Control (RBAC)**:
+
+| Role | Email | Password | Assigned Branch | Accessible Views & Permissions |
+| :--- | :--- | :--- | :--- | :--- |
+| **Inventory Clerk** | `clerk@zerowaste.com` | `clerk123` | Store #1 | **Catalog only** + **Add Shipment** button. Can receive and register incoming perishable batches. Prevented from auditing or approvals. |
+| **Inventory Auditor** | `auditor@zerowaste.com` | `auditor123` | Store #1 | **Catalog only** + **Audit** button. Rapid end-of-day stock count and spoilage reporting. Prevented from shipments or approvals. |
+| **Store Manager** | `manager@zerowaste.com` | `password123` | Store #1 (Metro Downtown) | **5 Navigation Tabs**: Dashboard (KPIs), Catalog (read-only), Reorder (Approve/Override), Alerts (Markdown/Dismiss), Analytics + Broadcasts. |
+| **System Admin** | `admin@zerowaste.com` | `admin123` | All Stores (Enterprise) | **4 Navigation Tabs**: Dashboard, Catalog, Enterprise Stores (Create Branch & Assign Manager), Analytics + Enterprise Broadcast Dispatch. |
+
+> ⚡ **Single-Tap Demo Login**: On the mobile login screen, tap the **"Quick Demo Login"** button to automatically log in as the Store Manager.
+
+---
+
+## 🧠 Machine Learning & Forecasting Architecture
+
+### 1. 194-Feature Pipeline (`feature_builder.py`)
+The prediction engine extracts 194 features per product for any evaluated forecast date:
+- **Lags**: 1 to 28 days of historical sales.
+- **Rolling Means**: 7-day, 14-day, and 28-day moving averages strictly calculated with `shift(1)` to prevent target-day leakage.
+- **Rolling Volatilities**: Moving standard deviations and coefficient of variation.
+- **Exogenous Telemetry**: Ambient temperature, foot traffic, precipitation, holidays, promotions, and day-of-week seasonality.
+- **Pricing & Margin**: Unit price, unit cost, price elasticity, and discount percentage.
+
+### 2. Quantile Loss Regression (`LightGBM`)
+- Optimizes pinball loss at the 85th percentile ($\alpha = 0.85$) to penalize out-of-stock events while curbing perishable excess.
+- Regularized using L2 penalty (`lambda_l2: 1.5`, `min_child_samples: 25`) to resist overfitting on small retail histories.
+
+### 3. Explainable AI (TreeSHAP)
+- Every automated replenishment recommendation generates a human-readable XAI breakdown.
+- Managers can tap **"Why this amount?"** on any reorder card to inspect top positive and negative feature drivers.
+
+### 4. Telemetry Logging without Live Retraining
+- The `/ai/ultra/feedback` endpoint records operational discrepancies to the `ModelFeedback` table for performance evaluation without unsafe online retraining in memory.
+
+---
+
+## 📱 Feature Highlights
+
+- **Dynamic Spoilage Markdown Engine**:
+  - Automatically identifies batches within $\le 2$ days of expiration.
+  - Suggests algorithmic discounts (25% to 40%) to accelerate sell-through before disposal.
+  - Applying markdowns immediately updates batch retail pricing.
+
+- **Offline Queue & Optimistic UI**:
+  - Built with Hive key-value persistence.
+  - When connection is lost, manager order approvals and auditor counts are safely buffered offline in local storage.
+  - Automatically flushed to the backend server with confirmation banners when reconnected.
+
+- **Enterprise Multi-Branch Isolation (IDOR-Protected)**:
+  - Strict branch isolation ensures store managers, clerks, and auditors can only inspect and modify their designated store.
+  - Enterprise Admin can oversee all stores, create new branches, and dispatch global announcements.
+
+- **Accessible Dual Theme (Light & Dark Mode)**:
+  - Tested and verified for **WCAG 2.1 AA** color contrast ratios across all surfaces, text colors, and chart lines ($\ge 14.8:1$ primary text, $\ge 5.3:1$ charts).
+  - Theme mode is instantly toggled from the top AppBar and preserved across app restarts.
+
+---
+
+## 🏛 Clean Architecture & Project Structure
+
+```text
+├── backend/
+│   ├── app/
+│   │   ├── api/v1/endpoints/  # FastAPI REST route controllers (auth, inventory, replenishment, admin...)
+│   │   ├── core/              # Security (JWT, bcrypt, RBAC dependencies, branch isolation)
+│   │   ├── db/                # SQLAlchemy session, engine, and base
+│   │   ├── models/            # Database schema models (Store, Product, Batch, Order, User...)
+│   │   ├── schemas/           # Pydantic v2 validation contracts
+│   │   └── services/          # Business logic & ML (feature builder, lightgbm, reorder, sigma)
+│   ├── ml_artifacts/          # Production trained model weights & 194-feature master joblib
+│   ├── main.py                # FastAPI entry point & CORS configuration
+│   ├── seed_db.py             # Deterministic database seeding script
+│   ├── test_fixes.py          # Automated verification test suite for RBAC & validations
+│   └── test_real_data.py      # Real retail dataset model accuracy verification
+│
+├── app_Mena/
+│   ├── lib/
+│   │   ├── core/              # Network (Dio client), Router (GoRouter), Theme, Offline Queue
+│   │   └── features/
+│   │       ├── auth/          # Login screen, user model, auth providers
+│   │       ├── dashboard/     # Store sustainability KPIs, Units at Risk cards
+│   │       ├── catalog/       # Product catalog, category chips, batch bottom sheet
+│   │       ├── reorder/       # Replenishment recommendations, override steppers, XAI
+│   │       ├── alerts/        # Markdown alerts, urgency badges, dismiss actions
+│   │       ├── analytics/     # FlChart interactive visual charts
+│   │       ├── broadcasts/    # Enterprise announcements view
+│   │       └── admin/         # Enterprise branch management screen
+│   └── test/                  # Unit and widget test suite (25 automated tests)
+```
+
+---
+
+## 🧪 Testing & Verification Commands
+
+All automated tests across the backend and frontend client can be verified with single commands:
+
+### Backend Tests
+```bash
 cd backend
 
-# Create and activate virtual environment
-python -m venv .venv
-# Windows:
-.\.venv\Scripts\activate
-# Linux/macOS:
-# source .venv/bin/activate
+# 1. Run targeted RBAC, branch isolation, and batch validation tests:
+python test_fixes.py
+# Output: ALL TARGETED FIX TESTS PASSED SUCCESSFULLY!
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Reset database to verified golden baseline
-python reset_db.py
-
-# Launch FastAPI development server
-uvicorn main:app --host 127.0.0.1 --port 8000 --reload
+# 2. Run real Zenodo retail dataset ML accuracy & forecasting evaluation:
+python test_real_data.py
+# Output: PASSED (WAPE: 52.12%, MAE: 0.078762, Bias: 0.7798)
 ```
-API documentation is accessible at `http://127.0.0.1:8000/docs`.
 
-### 3. Flutter Web Client Setup
+### Flutter Static Analysis & Widget Tests
 ```bash
-# Navigate to client directory
 cd app_Mena
 
-# Install dependencies
-flutter pub get
+# 1. Run static code analysis:
+flutter analyze
+# Output: No issues found!
 
-# Run on Chrome
-flutter run -d chrome --web-port 5000
-
-# Or build for production release
-flutter build web --release
+# 2. Run all unit and widget tests:
+flutter test
+# Output: All 25 tests passed!
 ```
 
 ---
 
-## Quality Assurance & Verification
+## 🔄 Resetting the Database
 
-ZeroWaste Grocer includes an automated test and contract verification suite:
+If test data is entered during demonstration, reset both database environments back to clean seed with:
 
 ```bash
-# Run comprehensive multi-suite check (Backend + Flutter)
 cd backend
-python run_all_checks.py --flutter
-
-# Run Flutter static analysis
-cd ../app_Mena
-flutter analyze
-
-# Run Flutter unit & contrast tests
-flutter test
-
-# Run API test suite
-cd ../backend
-pytest test_api.py
+python seed_db.py
 ```
 
 ---
 
-## Documentation
+## 📄 License & Attribution
 
-For full architectural flowcharts, sequence diagrams, and screen-by-screen references, see:
-- [Detailed User Flow Specification](docs/USER_FLOW.md)
-- [Architectural Diagrams](docs/diagrams/)
-- [Screen Capture Gallery](docs/screens/)
-
----
-
-## Dataset & Licensing
-
-- **License**: The software application code is distributed under the terms of the **Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)** license.
-- **Dataset Notice**: Under the provisions of CC BY-NC-ND 4.0, raw underlying supermarket sales datasets are proprietary and excluded from this repository. Serialized ML model weights are distributed within `backend/app/ml/models/` for out-of-the-box local inference.
+Distributed under the **Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)** license.
