@@ -28,7 +28,7 @@ class RouterRefreshNotifier extends ChangeNotifier {
 final Map<UserRole, Set<String>> _allowedPaths = {
   UserRole.inventoryClerk: {'/catalog'},
   UserRole.inventoryAuditor: {'/catalog'},
-  UserRole.storeManager: {'/dashboard', '/reorder', '/alerts', '/analytics', '/broadcasts'},
+  UserRole.storeManager: {'/dashboard', '/catalog', '/reorder', '/alerts', '/analytics', '/broadcasts'},
   UserRole.systemAdmin: {'/dashboard', '/catalog', '/stores', '/analytics', '/broadcasts'},
 };
 

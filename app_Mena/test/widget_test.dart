@@ -271,7 +271,7 @@ void main() {
     expect(find.textContaining('Approve All'), findsNothing);
   });
 
-  testWidgets('Store Manager sees 4 tabs (Dashboard, Reorder, Alerts, Analytics) and Approve actions', (WidgetTester tester) async {
+  testWidgets('Store Manager sees 5 tabs (Dashboard, Catalog, Reorder, Alerts, Analytics) with read-only catalog', (WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -293,12 +293,20 @@ void main() {
     // Verify role pill is present in AppBar
     expect(find.text('Manager'), findsOneWidget);
 
-    // Manager sees 4 navigation tabs
+    // Manager sees 5 navigation tabs
     expect(find.text('Dashboard'), findsOneWidget);
+    expect(find.text('Catalog'), findsOneWidget);
     expect(find.text('Reorder'), findsOneWidget);
     expect(find.text('Alerts'), findsOneWidget);
     expect(find.text('Analytics'), findsOneWidget);
-    expect(find.text('Catalog'), findsNothing);
+
+    // Navigate to Catalog tab and verify read-only: NO Audit button, NO Add Shipment button
+    await tester.tap(find.text('Catalog'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Audit'), findsNothing);
+    expect(find.text('Add Shipment'), findsNothing);
+    expect(find.byType(ProductCard), findsWidgets);
 
     // Navigate to Reorder tab and verify Approve actions are present
     await tester.tap(find.text('Reorder'));

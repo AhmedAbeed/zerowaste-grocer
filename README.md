@@ -52,8 +52,8 @@ The system comes pre-seeded with deterministic realistic accounts:
 | :--- | :--- | :--- | :--- | :--- |
 | **Inventory Clerk** | `clerk@zerowaste.com` | `clerk123` | Store #1 | Restricted access: Catalog inspection and Incoming Shipment registration dialog only |
 | **Inventory Auditor** | `auditor@zerowaste.com` | `auditor123` | Store #1 | Restricted access: Catalog inspection and Closing Inventory Stock Audit dialog only |
-| **Store Manager** | `manager@zerowaste.com` | `password123` | Store #1 (Metro Downtown) | Full store oversight: Dashboard, Catalog, Reorder (Approve/Override), Alerts (Accept/Dismiss), Analytics |
-| **System Admin** | `admin@zerowaste.com` | `admin123` | All Stores (1, 2, 3) | Multi-store oversight: Store switcher dropdown, Enterprise Dashboard, Global Catalog, Alerts read-only oversight |
+| **Store Manager** | `manager@zerowaste.com` | `password123` | Store #1 (Metro Downtown) | Full store oversight: Dashboard, Catalog (read-only inspection, no Audit/Add Shipment), Reorder (Approve/Override), Alerts (Accept/Dismiss), Analytics, Broadcasts |
+| **System Admin** | `admin@zerowaste.com` | `admin123` | All Stores (1, 2, 3) | Multi-store oversight: Store switcher dropdown, Enterprise Dashboard, Global Catalog, Enterprise Branches, Broadcasts |
 
 ---
 

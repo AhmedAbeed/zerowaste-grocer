@@ -31,7 +31,7 @@ router = APIRouter(tags=["inventory"])
 def get_store_inventory(
     store_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(require_roles("clerk", "auditor", "manager", "admin"))
 ):
     target_store_id = verify_branch_access(current_user, store_id)
     store = db.query(Store).filter(Store.id == target_store_id).first()
@@ -90,7 +90,7 @@ def get_store_inventory(
 def get_product_batches(
     product_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(require_roles("clerk", "auditor", "manager", "admin"))
 ):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:

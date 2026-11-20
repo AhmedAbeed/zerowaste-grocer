@@ -22,6 +22,27 @@ def test_rbac_denies():
     )
     assert res_audit.status_code == 403, f"Expected 403 for manager on /inventory/audit, got {res_audit.status_code}"
 
+    # Manager gets 403 on /batches/incoming
+    future_date = (date.today() + timedelta(days=10)).isoformat()
+    res_incoming = client.post(
+        "/api/v1/batches/incoming",
+        json={"product_id": 1, "batch_id": "B-TEST-MGR-FORBIDDEN", "quantity": 10, "expiration_date": future_date},
+        headers={"Authorization": f"Bearer {mgr_token}"}
+    )
+    assert res_incoming.status_code == 403, f"Expected 403 for manager on /batches/incoming, got {res_incoming.status_code}"
+
+    # Manager GET inventory and batches of own branch -> 200
+    res_own_inv = client.get("/api/v1/stores/1/inventory", headers={"Authorization": f"Bearer {mgr_token}"})
+    assert res_own_inv.status_code == 200, f"Expected 200 for manager on own store inventory, got {res_own_inv.status_code}"
+    res_own_batches = client.get("/api/v1/products/1/batches", headers={"Authorization": f"Bearer {mgr_token}"})
+    assert res_own_batches.status_code == 200, f"Expected 200 for manager on own store product batches, got {res_own_batches.status_code}"
+
+    # Manager GET inventory and batches of another branch -> 403
+    res_other_inv = client.get("/api/v1/stores/2/inventory", headers={"Authorization": f"Bearer {mgr_token}"})
+    assert res_other_inv.status_code == 403, f"Expected 403 for manager accessing other store inventory, got {res_other_inv.status_code}"
+    res_other_batches = client.get("/api/v1/products/27/batches", headers={"Authorization": f"Bearer {mgr_token}"})
+    assert res_other_batches.status_code == 403, f"Expected 403 for manager accessing other store product batches, got {res_other_batches.status_code}"
+
     # Clerk gets 403 on /replenishment/approve
     clerk_token = create_access_token(data={"sub": "clerk@zerowaste.com", "role": "clerk", "role_id": "clerk", "branch_id": 1, "store_id": 1})
     res_approve = client.post(
@@ -30,7 +51,7 @@ def test_rbac_denies():
         headers={"Authorization": f"Bearer {clerk_token}"}
     )
     assert res_approve.status_code == 403, f"Expected 403 for clerk on /replenishment/approve, got {res_approve.status_code}"
-    print("[PASS] manager gets 403 on /inventory/audit; clerk gets 403 on /replenishment/approve")
+    print("[PASS] manager gets 200 on own branch inventory/batches; 403 on other branch, audit, and incoming batches; clerk gets 403 on approve")
 
 def test_prediction_auth():
     # /predict/demand without a token returns 401
@@ -65,28 +86,29 @@ def test_batches_incoming_validation_and_duplicate():
 
     # 3. Duplicate batch_id -> 409
     unique_bid = f"B-TEST-{uuid.uuid4().hex[:8]}"
-    res_first = client.post(
-        "/api/v1/batches/incoming",
-        json={"product_id": 1, "batch_id": unique_bid, "quantity": 10, "expiration_date": future_date},
-        headers=headers
-    )
-    assert res_first.status_code == 201, f"Initial batch insert failed: {res_first.status_code} {res_first.text}"
-
-    res_dup = client.post(
-        "/api/v1/batches/incoming",
-        json={"product_id": 1, "batch_id": unique_bid, "quantity": 10, "expiration_date": future_date},
-        headers=headers
-    )
-    assert res_dup.status_code == 409, f"Expected 409 on duplicate batch_id, got {res_dup.status_code}"
-    assert "already exists" in res_dup.json()["detail"].lower()
-
-    # Clean up test batch
-    db = SessionLocal()
     try:
-        db.query(ProductBatch).filter(ProductBatch.id == unique_bid).delete()
-        db.commit()
+        res_first = client.post(
+            "/api/v1/batches/incoming",
+            json={"product_id": 1, "batch_id": unique_bid, "quantity": 10, "expiration_date": future_date},
+            headers=headers
+        )
+        assert res_first.status_code == 201, f"Initial batch insert failed: {res_first.status_code} {res_first.text}"
+
+        res_dup = client.post(
+            "/api/v1/batches/incoming",
+            json={"product_id": 1, "batch_id": unique_bid, "quantity": 10, "expiration_date": future_date},
+            headers=headers
+        )
+        assert res_dup.status_code == 409, f"Expected 409 on duplicate batch_id, got {res_dup.status_code}"
+        assert "already exists" in res_dup.json()["detail"].lower()
     finally:
-        db.close()
+        # Clean up test batch unconditionally
+        db = SessionLocal()
+        try:
+            db.query(ProductBatch).filter(ProductBatch.id.like("B-TEST-%")).delete(synchronize_session=False)
+            db.commit()
+        finally:
+            db.close()
 
     print("[PASS] /batches/incoming: quantity 0 -> 422/400, past expiration -> 400, duplicate batch_id -> 409")
 

@@ -14,6 +14,8 @@ final catalogRepositoryProvider = Provider<CatalogRepository>((ref) {
 
 /// Read call provider for products in the active store
 final productsProvider = FutureProvider<List<Product>>((ref) async {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return [];
   final storeId = ref.watch(activeStoreIdProvider);
   final repository = ref.watch(catalogRepositoryProvider);
   return repository.getProducts(storeId);
@@ -21,6 +23,8 @@ final productsProvider = FutureProvider<List<Product>>((ref) async {
 
 /// Read call provider for batches associated with a specific product SKU
 final productBatchesProvider = FutureProvider.family<List<ProductBatch>, int>((ref, productId) async {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return [];
   final repository = ref.watch(catalogRepositoryProvider);
   return repository.getBatches(productId);
 });

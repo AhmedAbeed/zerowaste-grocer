@@ -73,7 +73,7 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
     } else if (role == UserRole.systemAdmin) {
       return [0, 1, 5, 4]; // Dashboard (0), Catalog (1), Stores (5), Analytics (4)
     } else {
-      return [0, 2, 3, 4]; // Store Manager: Dashboard (0), Reorder (2), Alerts (3), Analytics (4)
+      return [0, 1, 2, 3, 4]; // Store Manager: Dashboard (0), Catalog (1), Reorder (2), Alerts (3), Analytics (4)
     }
   }
 
@@ -305,6 +305,11 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar> {
                         icon: Icon(Icons.dashboard_outlined),
                         selectedIcon: Icon(Icons.dashboard),
                         label: 'Dashboard',
+                      ),
+                      const NavigationDestination(
+                        icon: Icon(Icons.inventory_2_outlined),
+                        selectedIcon: Icon(Icons.inventory_2),
+                        label: 'Catalog',
                       ),
                       const NavigationDestination(
                         icon: Icon(Icons.autorenew_outlined),

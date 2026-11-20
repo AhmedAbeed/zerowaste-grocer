@@ -56,11 +56,12 @@ flutter run
 
 Reviewers and examiners can sign in with:
 
-| Field | Value |
-| :--- | :--- |
-| **Email** | `manager@zerowaste.com` |
-| **Password** | `password123` |
-| **Role** | Store Manager |
+| Role | Email | Password | Assigned Store | Core Permissions |
+| :--- | :--- | :--- | :--- | :--- |
+| **Inventory Clerk** | `clerk@zerowaste.com` | `clerk123` | Store #1 | Restricted access: Catalog inspection and Incoming Shipment registration dialog only |
+| **Inventory Auditor** | `auditor@zerowaste.com` | `auditor123` | Store #1 | Restricted access: Catalog inspection and Closing Inventory Stock Audit dialog only |
+| **Store Manager** | `manager@zerowaste.com` | `password123` | Store #1 (Metro Downtown) | Full store oversight: Dashboard, Catalog (read-only inspection, no Audit/Add Shipment), Reorder (Approve/Override), Alerts (Accept/Dismiss), Analytics, Broadcasts |
+| **System Admin** | `admin@zerowaste.com` | `admin123` | All Stores (1, 2, 3) | Multi-store oversight: Store switcher dropdown, Enterprise Dashboard, Global Catalog, Enterprise Branches, Broadcasts |
 
 > ⚡ **Quick Demo Login**: You can also simply click the **"Quick Demo Login"** button on the login screen to automatically fill credentials and log in with a single tap.
 
