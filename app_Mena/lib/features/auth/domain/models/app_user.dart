@@ -3,6 +3,7 @@ enum UserRole {
   storeManager,
   inventoryAuditor,
   systemAdmin,
+  inventoryClerk,
 }
 
 /// Represents an authenticated user of the application.

@@ -22,7 +22,7 @@ from app.services.notification_service import (
     dismiss_batch
 )
 from app.services.alert_service import evaluate_store_spoilage_alerts
-from app.core.security import get_current_user, require_roles
+from app.core.security import get_current_user, require_roles, verify_branch_access
 
 router = APIRouter(tags=["alerts"])
 
@@ -35,16 +35,17 @@ router = APIRouter(tags=["alerts"])
 def get_alerts(
     store_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles("storeManager", "systemAdmin"))
+    current_user: dict = Depends(require_roles("manager", "admin"))
 ):
-    store = db.query(Store).filter(Store.id == store_id).first()
+    target_store_id = verify_branch_access(current_user, store_id)
+    store = db.query(Store).filter(Store.id == target_store_id).first()
     if not store:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Store with ID {store_id} not found"
+            detail=f"Store with ID {target_store_id} not found"
         )
 
-    alerts = evaluate_store_spoilage_alerts(db, store_id=store_id)
+    alerts = evaluate_store_spoilage_alerts(db, store_id=target_store_id)
     now = datetime.now()
     active_alerts = []
     for a in alerts:
@@ -59,7 +60,7 @@ def get_alerts(
     units_at_risk = sum(a["remaining_qty"] for a in open_alerts)
 
     return AlertsListResponse(
-        store_id=store_id,
+        store_id=target_store_id,
         active_alerts_count=len(open_alerts),
         units_at_risk=units_at_risk,
         items=active_alerts
@@ -71,10 +72,16 @@ def get_alerts(
     status_code=status.HTTP_200_OK,
     summary="Apply or dismiss dynamic markdown for expiring batch"
 )
+@router.post(
+    "/alerts/resolve",
+    response_model=MarkdownActionResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Alias for resolving dynamic markdown alert"
+)
 def action_markdown(
     request: MarkdownActionRequest,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles("storeManager"))
+    current_user: dict = Depends(require_roles("manager"))
 ):
     # Alert ID format: ALT-{store_id}-{batch_id}
     parts = request.alert_id.split("-")
@@ -93,6 +100,9 @@ def action_markdown(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"ProductBatch for alert {request.alert_id} not found"
         )
+
+    # Verify branch isolation
+    verify_branch_access(current_user, batch.product.store_id)
 
     today = settings.get_effective_today()
     days_to_expiry = max(0, (batch.expiration_date - today).days)
@@ -123,7 +133,7 @@ def action_markdown(
 )
 def run_now(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles("storeManager", "systemAdmin"))
+    current_user: dict = Depends(require_roles("manager", "admin"))
 ):
     result = run_daily_markdown_job(db)
     return RunJobResponse(**result)
@@ -138,8 +148,11 @@ def run_now(
 def dismiss_alert(
     batch_id: str,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles("storeManager"))
+    current_user: dict = Depends(require_roles("manager"))
 ):
+    batch = db.query(ProductBatch).filter(ProductBatch.id == batch_id).first()
+    if batch:
+        verify_branch_access(current_user, batch.product.store_id)
     user_id_val = current_user.get("id") or current_user.get("sub")
     try:
         user_id = int(user_id_val) if user_id_val is not None else None

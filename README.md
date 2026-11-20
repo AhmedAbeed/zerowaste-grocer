@@ -17,11 +17,11 @@
   - Recommended markdowns (10% to 50%) calculated dynamically to clear surplus before spoilage.
   - One-click markdown application instantly updates database pricing.
 - **Explainable AI Replenishment (XAI)**:
-  - 7-day quantile demand forecasting built with 192 features (lag sales, rolling statistics, calendar seasonality, price elasticity).
+  - 7-day quantile demand forecasting built with 194 features (lag sales, rolling statistics, calendar seasonality, price elasticity).
   - Expandable *"Why this amount?"* panels displaying natural language rationale and top feature impact drivers.
   - Full support for supervisor manual overrides with mandatory reason recording.
 - **Role-Based Access Control (RBAC)**:
-  - Three distinct enterprise roles: **Store Manager**, **Inventory Auditor**, and **System Administrator**.
+  - Four distinct enterprise roles: **Inventory Clerk**, **Inventory Auditor**, **Store Manager**, and **System Administrator**.
   - Strict symmetric authorization on Flutter client navigation and FastAPI backend endpoints.
 - **Real-Time Sustainability & Waste KPIs**:
   - Live tracking of Projected Waste Exposure, Units at Risk, Waste Trend Charts, CO₂e Saved, and Kilograms Rescued.
@@ -30,6 +30,14 @@
   - One-click theme toggle persisted locally via Hive key-value storage (`settings_box`).
 - **Offline & Low-Bandwidth Resilience**:
   - Hive offline action queuing with automatic synchronization when connectivity is restored.
+
+---
+
+## Machine Learning & Pipeline Notes
+
+1. **Model Architecture & Regularization**: The demand forecasting engine uses quantile regression with L2 regularization to control variance and prevent overfitting across high-dimensional feature spaces.
+2. **Leakage Prevention in Feature Engineering**: Rolling statistics (`sales_rolling_mean_7`, `sales_rolling_mean_14`) are strictly computed with a `shift(1)` lag offset, ensuring the target forecast day is never included in the historical window.
+3. **Discrepancy Logging vs Retraining**: The `/ai/ultra/feedback` endpoint logs prediction discrepancies and telemetry to the `ModelFeedback` table for performance auditing and scheduled offline evaluation; it does not perform automated online retraining in production.
 
 > 📊 **Looking for the Architectural Diagrams & User Flows?**  
 > Check out the complete [**User Flow Specification & Diagrams (docs/USER_FLOW.md)**](docs/USER_FLOW.md) featuring 10 interactive Mermaid flowcharts, sequence diagrams, and role-based permissions matrix.
@@ -42,8 +50,9 @@ The system comes pre-seeded with deterministic realistic accounts:
 
 | Role | Email | Password | Assigned Store | Core Permissions |
 | :--- | :--- | :--- | :--- | :--- |
-| **Store Manager** | `manager@zerowaste.com` | `password123` | Store #1 (Metro Downtown) | Full store oversight: Dashboard, Catalog, Reorder (Approve/Override), Alerts (Accept/Dismiss), Analytics |
+| **Inventory Clerk** | `clerk@zerowaste.com` | `clerk123` | Store #1 | Restricted access: Catalog inspection and Incoming Shipment registration dialog only |
 | **Inventory Auditor** | `auditor@zerowaste.com` | `auditor123` | Store #1 | Restricted access: Catalog inspection and Closing Inventory Stock Audit dialog only |
+| **Store Manager** | `manager@zerowaste.com` | `password123` | Store #1 (Metro Downtown) | Full store oversight: Dashboard, Catalog, Reorder (Approve/Override), Alerts (Accept/Dismiss), Analytics |
 | **System Admin** | `admin@zerowaste.com` | `admin123` | All Stores (1, 2, 3) | Multi-store oversight: Store switcher dropdown, Enterprise Dashboard, Global Catalog, Alerts read-only oversight |
 
 ---

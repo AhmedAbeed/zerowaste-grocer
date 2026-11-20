@@ -412,11 +412,11 @@ def seed():
         print("[7/7] Seeding staff users with RBAC roles...")
         users_data = [
             {
-                "username": "manager",
-                "email": "manager@zerowaste.com",
-                "hashed_password": get_password_hash("password123"),
-                "full_name": "Store Manager",
-                "role": "storeManager",
+                "username": "clerk",
+                "email": "clerk@zerowaste.com",
+                "hashed_password": get_password_hash("clerk123"),
+                "full_name": "Inventory Clerk",
+                "role": "clerk",
                 "store_id": 1,
             },
             {
@@ -424,15 +424,23 @@ def seed():
                 "email": "auditor@zerowaste.com",
                 "hashed_password": get_password_hash("auditor123"),
                 "full_name": "Inventory Auditor",
-                "role": "inventoryAuditor",
+                "role": "auditor",
+                "store_id": 1,
+            },
+            {
+                "username": "manager",
+                "email": "manager@zerowaste.com",
+                "hashed_password": get_password_hash("password123"),
+                "full_name": "Store Manager",
+                "role": "manager",
                 "store_id": 1,
             },
             {
                 "username": "admin",
                 "email": "admin@zerowaste.com",
                 "hashed_password": get_password_hash("admin123"),
-                "full_name": "System Admin",
-                "role": "systemAdmin",
+                "full_name": "Enterprise Admin",
+                "role": "admin",
                 "store_id": None,
             },
         ]

@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/admin/presentation/screens/branches_screen.dart';
 import '../../features/alerts/presentation/screens/alerts_screen.dart';
 import '../../features/analytics/presentation/screens/analytics_screen.dart';
 import '../../features/auth/domain/models/app_user.dart';
 import '../../features/auth/presentation/auth_providers.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/broadcasts/presentation/screens/broadcasts_screen.dart';
 import '../../features/catalog/presentation/screens/catalog_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/reorder/presentation/screens/reorder_screen.dart';
@@ -21,6 +23,14 @@ class RouterRefreshNotifier extends ChangeNotifier {
     });
   }
 }
+
+/// Allowed paths per role to prevent unauthorized deep linking
+final Map<UserRole, Set<String>> _allowedPaths = {
+  UserRole.inventoryClerk: {'/catalog'},
+  UserRole.inventoryAuditor: {'/catalog'},
+  UserRole.storeManager: {'/dashboard', '/reorder', '/alerts', '/analytics', '/broadcasts'},
+  UserRole.systemAdmin: {'/dashboard', '/catalog', '/stores', '/analytics', '/broadcasts'},
+};
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = RouterRefreshNotifier(ref);
@@ -38,16 +48,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return '/login';
       }
       if (user != null && isLoggingIn) {
-        return user.role == UserRole.inventoryAuditor ? '/catalog' : '/dashboard';
+        final isClerkOrAuditor =
+            user.role == UserRole.inventoryClerk || user.role == UserRole.inventoryAuditor;
+        return isClerkOrAuditor ? '/catalog' : '/dashboard';
       }
-      if (user != null && user.role == UserRole.inventoryAuditor) {
-        if (state.matchedLocation != '/catalog') {
-          return '/catalog';
-        }
-      }
-      if (user != null && user.role == UserRole.systemAdmin) {
-        if (state.matchedLocation == '/reorder') {
-          return '/dashboard';
+      if (user != null) {
+        final allowed = _allowedPaths[user.role] ?? {'/catalog'};
+        if (!allowed.contains(state.matchedLocation)) {
+          final isClerkOrAuditor =
+              user.role == UserRole.inventoryClerk || user.role == UserRole.inventoryAuditor;
+          return isClerkOrAuditor ? '/catalog' : '/dashboard';
         }
       }
       return null;
@@ -57,6 +67,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/login',
         name: 'login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/broadcasts',
+        name: 'broadcasts',
+        builder: (context, state) => const BroadcastsScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -105,6 +120,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: '/analytics',
                 name: 'analytics',
                 builder: (context, state) => const AnalyticsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/stores',
+                name: 'stores',
+                builder: (context, state) => const BranchesScreen(),
               ),
             ],
           ),

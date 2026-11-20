@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/domain/models/app_user.dart';
 import '../../../auth/presentation/auth_providers.dart';
 import '../../domain/models/product.dart';
 import '../catalog_providers.dart';
 import '../widgets/closing_audit_dialog.dart';
+import '../widgets/incoming_batch_dialog.dart';
 import '../widgets/product_card.dart';
 
 class CatalogScreen extends ConsumerStatefulWidget {
@@ -45,6 +47,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
   Widget build(BuildContext context) {
     final productsAsync = ref.watch(productsProvider);
     final activeStoreId = ref.watch(activeStoreIdProvider);
+    final user = ref.watch(currentUserProvider);
 
     return Scaffold(
       
@@ -292,26 +295,50 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
         ),
       ),
       floatingActionButton: productsAsync.whenOrNull(
-        data: (products) => FloatingActionButton.extended(
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                fullscreenDialog: true,
-                builder: (_) => ClosingAuditDialog(
-                  products: products,
-                  storeId: activeStoreId,
-                ),
+        data: (products) {
+          if (user?.role == UserRole.inventoryAuditor) {
+            return FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    fullscreenDialog: true,
+                    builder: (_) => ClosingAuditDialog(
+                      products: products,
+                      storeId: activeStoreId,
+                    ),
+                  ),
+                );
+              },
+              backgroundColor: context.primaryBrand,
+              foregroundColor: context.isDarkMode ? Colors.black : Colors.white,
+              icon: const Icon(Icons.assignment_turned_in_rounded),
+              label: const Text(
+                'Audit',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
             );
-          },
-          backgroundColor: context.primaryBrand,
-          foregroundColor: context.isDarkMode ? Colors.black : Colors.white,
-          icon: const Icon(Icons.assignment_turned_in_rounded),
-          label: const Text(
-            'Audit',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
+          } else if (user?.role == UserRole.inventoryClerk) {
+            return FloatingActionButton.extended(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => IncomingBatchDialog(
+                    products: products,
+                    storeId: activeStoreId,
+                  ),
+                );
+              },
+              backgroundColor: AppColors.forestGreen,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add_box_rounded),
+              label: const Text(
+                'Add Shipment',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            );
+          }
+          return null;
+        },
       ),
     );
   }

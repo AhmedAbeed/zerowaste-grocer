@@ -64,9 +64,9 @@ void main() {
           ...mockRepositoryOverrides,
           currentUserProvider.overrideWith(
             (ref) => const AppUser(
-              id: 'USR-001',
-              name: 'Mena Mikhail',
-              role: UserRole.storeManager,
+              id: 'USR-003',
+              name: 'Admin User',
+              role: UserRole.systemAdmin,
               token: 'test_token',
             ),
           ),
@@ -82,7 +82,6 @@ void main() {
     expect(find.text('All'), findsOneWidget);
     expect(find.text('Produce'), findsOneWidget);
     expect(find.byType(ProductCard), findsWidgets);
-    expect(find.text('Audit'), findsOneWidget);
   });
 
   testWidgets('Navigate to Reorder tab and verify recommendation cards', (WidgetTester tester) async {
@@ -197,8 +196,43 @@ void main() {
     expect(find.text('Alerts'), findsNothing);
     expect(find.text('Analytics'), findsNothing);
 
-    // Auditor sees the audit action on Catalog
+    // Auditor sees the audit action on Catalog and NOT Add Shipment
     expect(find.text('Audit'), findsWidgets);
+    expect(find.text('Add Shipment'), findsNothing);
+  });
+
+  testWidgets('Inventory Clerk sees only the Catalog tab with Add Shipment action and NO audit button', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          ...mockRepositoryOverrides,
+          currentUserProvider.overrideWith(
+            (ref) => const AppUser(
+              id: 'USR-004',
+              name: 'Clerk User',
+              role: UserRole.inventoryClerk,
+              token: 'clerk_token',
+            ),
+          ),
+        ],
+        child: const ZeroWasteGrocerApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify role pill is present in AppBar
+    expect(find.text('Clerk'), findsOneWidget);
+
+    // Clerk sees only Catalog tab
+    expect(find.text('Catalog'), findsOneWidget);
+    expect(find.text('Dashboard'), findsNothing);
+    expect(find.text('Reorder'), findsNothing);
+    expect(find.text('Alerts'), findsNothing);
+    expect(find.text('Analytics'), findsNothing);
+
+    // Clerk sees Add Shipment action and NOT Audit action
+    expect(find.text('Add Shipment'), findsWidgets);
+    expect(find.text('Audit'), findsNothing);
   });
 
   testWidgets('System Admin does not see the Reorder tab or the Approve button', (WidgetTester tester) async {
@@ -223,10 +257,10 @@ void main() {
     // Verify role pill is present in AppBar
     expect(find.text('Admin'), findsOneWidget);
 
-    // Admin sees Dashboard, Catalog, Alerts, Analytics
+    // Admin sees Dashboard, Catalog, Stores, Analytics
     expect(find.text('Dashboard'), findsOneWidget);
     expect(find.text('Catalog'), findsOneWidget);
-    expect(find.text('Alerts'), findsOneWidget);
+    expect(find.text('Stores'), findsOneWidget);
     expect(find.text('Analytics'), findsOneWidget);
 
     // Admin does NOT see Reorder tab
@@ -237,7 +271,7 @@ void main() {
     expect(find.textContaining('Approve All'), findsNothing);
   });
 
-  testWidgets('Store Manager sees everything (all 5 tabs and Approve actions)', (WidgetTester tester) async {
+  testWidgets('Store Manager sees 4 tabs (Dashboard, Reorder, Alerts, Analytics) and Approve actions', (WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -259,12 +293,12 @@ void main() {
     // Verify role pill is present in AppBar
     expect(find.text('Manager'), findsOneWidget);
 
-    // Manager sees all 5 navigation tabs
+    // Manager sees 4 navigation tabs
     expect(find.text('Dashboard'), findsOneWidget);
-    expect(find.text('Catalog'), findsOneWidget);
     expect(find.text('Reorder'), findsOneWidget);
     expect(find.text('Alerts'), findsOneWidget);
     expect(find.text('Analytics'), findsOneWidget);
+    expect(find.text('Catalog'), findsNothing);
 
     // Navigate to Reorder tab and verify Approve actions are present
     await tester.tap(find.text('Reorder'));
@@ -406,7 +440,7 @@ void main() {
     expect(find.text('Accept Markdown'), findsWidgets);
   });
 
-  testWidgets("System Admin sees NEITHER 'Dismiss' NOR 'Accept Markdown' on alert cards", (WidgetTester tester) async {
+  testWidgets("System Admin does NOT see the Alerts tab", (WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -425,12 +459,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Alerts'));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(AlertCard), findsWidgets);
-    expect(find.text('Dismiss'), findsNothing);
-    expect(find.text('Accept Markdown'), findsNothing);
+    expect(find.text('Alerts'), findsNothing);
   });
 
   testWidgets("Batch urgency tag: days_to_expiry 1 -> 'Expires in 1d' (red) and 5 -> 'Expires in 5d' (green)", (WidgetTester tester) async {
@@ -644,11 +673,11 @@ void main() {
     // While Dashboard is active, badge is visible on the Alerts tab
     expect(find.widgetWithText(Badge, '1'), findsWidgets);
 
-    // Switch to Catalog tab (another tab is active)
-    await tester.tap(find.text('Catalog'));
+    // Switch to Reorder tab (another tab is active)
+    await tester.tap(find.text('Reorder'));
     await tester.pumpAndSettle();
 
-    // Badge still stays visible while Catalog is active
+    // Badge still stays visible while Reorder is active
     expect(find.widgetWithText(Badge, '1'), findsWidgets);
 
     // Now tap the Alerts tab to select it

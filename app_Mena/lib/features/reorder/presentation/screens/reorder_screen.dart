@@ -94,7 +94,7 @@ class ReorderScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
-    if (user != null && user.role == UserRole.inventoryAuditor) {
+    if (user != null && (user.role == UserRole.inventoryAuditor || user.role == UserRole.inventoryClerk)) {
       return Scaffold(
         
         body: Center(

@@ -1,6 +1,6 @@
 """
 app/services/feature_builder.py
-Strict 192-Feature Engineering Pipeline for ZeroWaste Grocer demand forecasting.
+Strict 194-Feature Engineering Pipeline for ZeroWaste Grocer demand forecasting.
 Constructs multi-modal feature vectors from calendar signals, ERA5 weather telemetry,
 pedestrian mobility loads, and 56-day target and related sales lags.
 Supports optional pre-loaded entities for ultra-fast batch recommendation formulations.
@@ -20,7 +20,7 @@ from app.models.models import (
 )
 from app.services.ml_service import GroceryMLService
 
-# Retrieve ordered list of 192 feature names
+# Retrieve ordered list of 194 feature names
 _ml_service = GroceryMLService.get_instance()
 MASTER_FEATURE_NAMES: List[str] = _ml_service.master_feature_names
 
@@ -36,7 +36,7 @@ def build_feature_dict(
     rel_map: Optional[Dict[date, float]] = None
 ) -> Dict[str, float]:
     """
-    Constructs a dictionary mapping all 192 feature names to float values.
+    Constructs a dictionary mapping all 194 feature names to float values.
     Populates all 8 feature categories with zero unnecessary overhead.
     """
     feats: Dict[str, float] = {col: 0.0 for col in MASTER_FEATURE_NAMES}
@@ -237,7 +237,24 @@ def build_feature_dict(
             feats[f"lag_related_{i}"] = feats[f"lag_{i}"]
 
     # --------------------------------------------------------------------------
-    # 2g. Primary Entities [180-182]
+    # 2g. Rolling Sales Means [180-181] (sales_rolling_mean_7, sales_rolling_mean_14)
+    # --------------------------------------------------------------------------
+    vals_7 = [
+        float(snap_map[target_date - timedelta(days=i)]) / settings.DEMAND_SCALE
+        for i in range(1, 8)
+        if (target_date - timedelta(days=i)) in snap_map
+    ]
+    feats["sales_rolling_mean_7"] = float(sum(vals_7) / len(vals_7)) if vals_7 else float(default_lag)
+
+    vals_14 = [
+        float(snap_map[target_date - timedelta(days=i)]) / settings.DEMAND_SCALE
+        for i in range(1, 15)
+        if (target_date - timedelta(days=i)) in snap_map
+    ]
+    feats["sales_rolling_mean_14"] = float(sum(vals_14) / len(vals_14)) if vals_14 else float(default_lag)
+
+    # --------------------------------------------------------------------------
+    # 2h. Primary Entities [182-184]
     # --------------------------------------------------------------------------
     ml_product_id = float(((product.id - 1) % 15) + 1)
     feats["store_id"] = float(store_id)
@@ -274,7 +291,7 @@ def build_feature_vector(
     rel_map: Optional[Dict[date, float]] = None
 ) -> pd.DataFrame:
     """
-    Constructs a 1-row pandas DataFrame with 0.0 for all 192 columns in the exact
+    Constructs a 1-row pandas DataFrame with 0.0 for all 194 columns in the exact
     order of master_feature_names.joblib and populates all 8 feature categories.
     Accepts optional preloaded product, exo, snap_map, and rel_map for high performance.
     """

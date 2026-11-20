@@ -27,7 +27,7 @@ class Settings:
     MODEL_PATH: Path = ML_ARTIFACTS_DIR / "production_model.joblib"
     FEATURE_NAMES_PATH: Path = ML_ARTIFACTS_DIR / "master_feature_names.joblib"
 
-    EXPECTED_FEATURE_COUNT: int = 192
+    EXPECTED_FEATURE_COUNT: int = 194
 
     # Level B3 Domain Mathematics Parameters
     DEMAND_SCALE: float = float(os.getenv("DEMAND_SCALE", "250.0"))        # Continuous ML target (~0.08) to physical retail units

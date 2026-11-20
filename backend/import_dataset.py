@@ -165,9 +165,10 @@ def import_dataset(
         # 4. Seed Staff Users for Authentication
         print("[4/6] Seeding default staff users...")
         users_data = [
-            {"username": "manager", "email": "manager@zerowaste.com", "hashed_password": get_password_hash("password123"), "full_name": "Store Manager", "role": "storeManager", "store_id": 1},
-            {"username": "auditor", "email": "auditor@zerowaste.com", "hashed_password": get_password_hash("auditor123"), "full_name": "Inventory Auditor", "role": "inventoryAuditor", "store_id": 1},
-            {"username": "admin", "email": "admin@zerowaste.com", "hashed_password": get_password_hash("admin123"), "full_name": "System Admin", "role": "systemAdmin", "store_id": None},
+            {"username": "clerk", "email": "clerk@zerowaste.com", "hashed_password": get_password_hash("clerk123"), "full_name": "Inventory Clerk", "role": "clerk", "store_id": 1},
+            {"username": "auditor", "email": "auditor@zerowaste.com", "hashed_password": get_password_hash("auditor123"), "full_name": "Inventory Auditor", "role": "auditor", "store_id": 1},
+            {"username": "manager", "email": "manager@zerowaste.com", "hashed_password": get_password_hash("password123"), "full_name": "Store Manager", "role": "manager", "store_id": 1},
+            {"username": "admin", "email": "admin@zerowaste.com", "hashed_password": get_password_hash("admin123"), "full_name": "Enterprise Admin", "role": "admin", "store_id": None},
         ]
         for ud in users_data:
             db.add(User(**ud))

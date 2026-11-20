@@ -15,7 +15,7 @@ from app.schemas.api_schemas import (
     ApprovalResponse
 )
 from app.services.reorder_service import generate_store_recommendations
-from app.core.security import get_current_user, require_roles
+from app.core.security import get_current_user, require_roles, verify_branch_access
 
 router = APIRouter(prefix="/replenishment", tags=["replenishment"])
 
@@ -29,13 +29,14 @@ def get_recommendations(
     store_id: int,
     target_date: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles("storeManager", "systemAdmin"))
+    current_user: dict = Depends(require_roles("manager", "admin"))
 ):
-    store = db.query(Store).filter(Store.id == store_id).first()
+    target_store_id = verify_branch_access(current_user, store_id)
+    store = db.query(Store).filter(Store.id == target_store_id).first()
     if not store:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Store with ID {store_id} not found"
+            detail=f"Store with ID {target_store_id} not found"
         )
 
     if target_date:
@@ -55,7 +56,7 @@ def get_recommendations(
             db.query(OrderItem.product_id)
             .join(ReplenishmentOrder, ReplenishmentOrder.id == OrderItem.order_id)
             .filter(
-                ReplenishmentOrder.store_id == store_id,
+                ReplenishmentOrder.store_id == target_store_id,
                 ReplenishmentOrder.order_date == effective_today,
                 ReplenishmentOrder.status == "APPROVED"
             )
@@ -63,7 +64,7 @@ def get_recommendations(
         )
     )
 
-    recs = generate_store_recommendations(db, store_id=store_id, target_date=target_dt)
+    recs = generate_store_recommendations(db, store_id=target_store_id, target_date=target_dt)
     for r in recs:
         is_app = r["product_id"] in approved_product_ids
         r["approved"] = is_app
@@ -71,7 +72,7 @@ def get_recommendations(
             r["status"] = "approved"
 
     return RecommendationsResponse(
-        store_id=store_id,
+        store_id=target_store_id,
         target_date=target_dt.isoformat(),
         total_items=len(recs),
         items=recs
@@ -86,13 +87,14 @@ def get_recommendations(
 def approve_recommendations(
     request: ApprovalRequest,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles("storeManager"))
+    current_user: dict = Depends(require_roles("manager"))
 ):
-    store = db.query(Store).filter(Store.id == request.store_id).first()
+    target_store_id = verify_branch_access(current_user, request.store_id)
+    store = db.query(Store).filter(Store.id == target_store_id).first()
     if not store:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Store with ID {request.store_id} not found"
+            detail=f"Store with ID {target_store_id} not found"
         )
 
     today = settings.get_effective_today()
@@ -103,7 +105,7 @@ def approve_recommendations(
             db.query(OrderItem.product_id)
             .join(ReplenishmentOrder, ReplenishmentOrder.id == OrderItem.order_id)
             .filter(
-                ReplenishmentOrder.store_id == request.store_id,
+                ReplenishmentOrder.store_id == target_store_id,
                 ReplenishmentOrder.order_date == today,
                 ReplenishmentOrder.status == "APPROVED"
             )

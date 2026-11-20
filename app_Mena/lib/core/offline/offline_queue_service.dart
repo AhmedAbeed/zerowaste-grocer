@@ -102,4 +102,16 @@ class OfflineQueueService {
 
     return synced;
   }
+
+  /// Clears offline Hive queues on user logout
+  static Future<void> clearAllBoxes() async {
+    final appBox = _approvalsBox;
+    if (appBox != null) {
+      await appBox.clear();
+    }
+    final audBox = _auditsBox;
+    if (audBox != null) {
+      await audBox.clear();
+    }
+  }
 }

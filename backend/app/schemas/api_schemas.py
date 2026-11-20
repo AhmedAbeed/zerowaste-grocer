@@ -2,7 +2,8 @@
 app/schemas/api_schemas.py
 Pydantic v2 schemas for ZeroWaste Grocer REST API Contract.
 """
-from typing import Optional, List
+from datetime import date
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
 # 1. Auth Schemas
@@ -14,7 +15,9 @@ class UserResponse(BaseModel):
     id: str
     name: str
     role: str
+    role_id: Optional[str] = None
     store_id: Optional[int] = None
+    branch_id: Optional[int] = None
 
 class LoginResponse(BaseModel):
     token: str
@@ -60,8 +63,8 @@ class BatchResponse(BaseModel):
 
 class AuditEntrySchema(BaseModel):
     product_id: int
-    on_hand_qty: int
-    spoiled_qty: int
+    on_hand_qty: int = Field(..., ge=0, description="Physical on-hand quantity cannot be negative")
+    spoiled_qty: int = Field(..., ge=0, description="Spoiled quantity cannot be negative")
 
 class AuditSubmitRequest(BaseModel):
     store_id: int
@@ -190,3 +193,111 @@ class RunJobResponse(BaseModel):
     notifications_created: int
     skipped_duplicates: int
     skipped_dismissed: int
+
+# 8. Phase 3: Incoming Batches (Clerk)
+class IncomingBatchRequest(BaseModel):
+    product_id: int
+    batch_id: str
+    quantity: int = Field(gt=0, description="Quantity must be greater than 0")
+    expiration_date: date
+
+class IncomingBatchResponse(BaseModel):
+    status: str = "success"
+    batch_id: str
+    product_id: int
+    product_name: str
+    store_id: int
+    quantity: int
+    expiration_date: str
+    current_stock: int
+    message: str
+
+# 9. Phase 3: Admin Branch & Global Analytics
+class BranchManagerInfo(BaseModel):
+    id: Optional[int] = None
+    username: Optional[str] = None
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+
+class BranchDetailResponse(BaseModel):
+    id: int
+    name: str
+    location: str
+    lat: float = 0.0
+    lon: float = 0.0
+    manager: Optional[BranchManagerInfo] = None
+    product_count: int = 0
+    active_stock: int = 0
+
+class BranchCreateRequest(BaseModel):
+    name: str
+    location: str
+    lat: float = 0.0
+    lon: float = 0.0
+    manager_id: Optional[int] = None
+
+class StoreGlobalSummary(BaseModel):
+    store_id: int
+    store_name: str
+    location: str
+    product_count: int
+    total_stock: int
+    financial_loss: float
+
+class GlobalAnalyticsResponse(BaseModel):
+    total_stores: int
+    total_products: int
+    total_active_stock: int
+    total_spoilage_units: int
+    total_financial_loss: float
+    total_diverted_kg: float
+    stores: List[StoreGlobalSummary]
+
+# 10. Phase 3: Broadcast System
+class BroadcastCreateRequest(BaseModel):
+    title: str
+    message: str
+    target_store_id: Optional[int] = None
+    priority: str = "normal"
+
+class BroadcastResponse(BaseModel):
+    id: int
+    title: str
+    message: str
+    target_store_id: Optional[int] = None
+    target_store_name: Optional[str] = None
+    created_at: str
+    created_by: Optional[str] = None
+    priority: str = "normal"
+
+# 11. Phase 3: AI Ultra Endpoints
+class UltraForecastRequest(BaseModel):
+    product_id: int
+    target_date: Optional[str] = None
+    store_id: Optional[int] = None
+
+class UltraForecastResponse(BaseModel):
+    product_id: int
+    product_name: str
+    store_id: int
+    target_date: str
+    predicted_demand: float
+    recommended_order_units: int
+    confidence_interval: Dict[str, Any]
+    top_drivers: List[Dict[str, Any]]
+
+class UltraFeedbackRequest(BaseModel):
+    product_id: int
+    feedback_date: Optional[str] = None
+    store_id: Optional[int] = None
+    predicted_demand: Optional[float] = None
+    actual_demand: Optional[float] = None
+    spoiled_units: int = 0
+    discrepancy: Optional[float] = None
+    notes: Optional[str] = None
+
+class UltraFeedbackResponse(BaseModel):
+    status: str = "success"
+    feedback_id: int
+    message: str
+

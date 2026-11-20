@@ -36,8 +36,8 @@ def run_tests():
         print("\n[Test 1/3] Verifying 192-Feature Engineering Pipeline...")
         df = build_feature_vector(db, store_id=1, product_id=1, target_date=today)
 
-        print(f"      Feature matrix shape: {df.shape} (expected: (1, 192))")
-        assert df.shape == (1, 192), f"Expected shape (1, 192), got {df.shape}"
+        print(f"      Feature matrix shape: {df.shape} (expected: (1, 194))")
+        assert df.shape == (1, 194), f"Expected shape (1, 194), got {df.shape}"
 
         nan_count = df.isna().sum().sum()
         print(f"      NaN values count: {nan_count}")

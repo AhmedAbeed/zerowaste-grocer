@@ -13,7 +13,7 @@ from app.schemas.api_schemas import (
     NotificationSchema,
     NotificationReadResponse
 )
-from app.core.security import require_roles
+from app.core.security import require_roles, verify_branch_access
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -28,16 +28,17 @@ def get_notifications(
     unread_only: bool = Query(False, description="Filter only unread notifications"),
     limit: int = Query(50, ge=1, le=200, description="Max notifications to return"),
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles("storeManager"))
+    current_user: dict = Depends(require_roles("manager", "admin"))
 ):
     # Total unread count for store, independent of unread_only and limit
+    target_store_id = verify_branch_access(current_user, store_id)
     unread_count = (
         db.query(Notification)
-        .filter(Notification.store_id == store_id, Notification.is_read == False)
+        .filter(Notification.store_id == target_store_id, Notification.is_read == False)
         .count()
     )
 
-    query = db.query(Notification).filter(Notification.store_id == store_id)
+    query = db.query(Notification).filter(Notification.store_id == target_store_id)
     if unread_only:
         query = query.filter(Notification.is_read == False)
 
@@ -69,7 +70,7 @@ def get_notifications(
 def mark_notification_read(
     notification_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles("storeManager"))
+    current_user: dict = Depends(require_roles("manager", "admin"))
 ):
     notif = db.query(Notification).filter(Notification.id == notification_id).first()
     if not notif:

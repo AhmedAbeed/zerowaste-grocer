@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.models import User
 from app.schemas.api_schemas import LoginRequest, LoginResponse, UserResponse
-from app.core.security import create_access_token, verify_password
+from app.core.security import create_access_token, verify_password, normalize_role
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -39,7 +39,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
             )
         user_id = str(user.id)
         name = user.full_name
-        role = user.role
+        canonical_role = normalize_role(user.role)
         store_id = user.store_id
     else:
         raise HTTPException(
@@ -51,9 +51,11 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         "sub": user_id,
         "id": user_id,
         "name": name,
-        "role": role,
-        "email": email_clean,
-        "store_id": store_id
+        "role": canonical_role,
+        "role_id": canonical_role,
+        "store_id": store_id,
+        "branch_id": store_id,
+        "email": email_clean
     }
     token = create_access_token(data=token_payload)
 
@@ -62,7 +64,9 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         user=UserResponse(
             id=user_id,
             name=name,
-            role=role,
-            store_id=store_id
+            role=canonical_role,
+            role_id=canonical_role,
+            store_id=store_id,
+            branch_id=store_id
         )
     )

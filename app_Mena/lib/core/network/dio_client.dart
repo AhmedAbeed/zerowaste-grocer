@@ -43,6 +43,12 @@ final dioProvider = Provider<Dio>((ref) {
         if (kDebugMode) {
           debugPrint('<-- ERROR ${error.response?.statusCode}: ${error.message} (${error.requestOptions.uri})');
         }
+        if (error.response?.statusCode == 401) {
+          final isLoginRequest = error.requestOptions.path.contains('/auth/login');
+          if (!isLoginRequest) {
+            ref.read(currentUserProvider.notifier).state = null;
+          }
+        }
         return handler.next(error);
       },
     ),

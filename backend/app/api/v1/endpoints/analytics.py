@@ -20,7 +20,7 @@ from app.schemas.api_schemas import (
     SalesPointResponse,
     CategoryWasteResponse
 )
-from app.core.security import get_current_user, require_roles
+from app.core.security import get_current_user, require_roles, verify_branch_access
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -33,19 +33,20 @@ router = APIRouter(prefix="/analytics", tags=["analytics"])
 def get_waste_metrics(
     store_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles("storeManager", "systemAdmin"))
+    current_user: dict = Depends(require_roles("manager", "admin"))
 ):
-    store = db.query(Store).filter(Store.id == store_id).first()
+    target_store_id = verify_branch_access(current_user, store_id)
+    store = db.query(Store).filter(Store.id == target_store_id).first()
     if not store:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Store with ID {store_id} not found"
+            detail=f"Store with ID {target_store_id} not found"
         )
 
     today = settings.get_effective_today()
 
     # Units at risk & projected exposure from active open alerts (matching Alerts screen)
-    alerts = evaluate_store_spoilage_alerts(db, store_id=store_id)
+    alerts = evaluate_store_spoilage_alerts(db, store_id=target_store_id)
     now = datetime.now()
     open_alerts = []
     for a in alerts:
@@ -70,14 +71,14 @@ def get_waste_metrics(
             db.query(OrderItem.product_id)
             .join(ReplenishmentOrder, ReplenishmentOrder.id == OrderItem.order_id)
             .filter(
-                ReplenishmentOrder.store_id == store_id,
+                ReplenishmentOrder.store_id == target_store_id,
                 ReplenishmentOrder.order_date == effective_today,
                 ReplenishmentOrder.status == "APPROVED"
             )
             .all()
         )
     )
-    recs = generate_store_recommendations(db, store_id=store_id, target_date=effective_today)
+    recs = generate_store_recommendations(db, store_id=target_store_id, target_date=effective_today)
     pending_orders = sum(1 for r in recs if r["product_id"] not in approved_product_ids)
 
     KG_PER_UNIT_ASSUMPTION = 0.35  # assumption, not measured
@@ -85,7 +86,7 @@ def get_waste_metrics(
     accepted_batches_qty = (
         db.query(ProductBatch.remaining_quantity)
         .join(Product, ProductBatch.product_id == Product.id)
-        .filter(Product.store_id == store_id, ProductBatch.current_discount_pct > 0.0)
+        .filter(Product.store_id == target_store_id, ProductBatch.current_discount_pct > 0.0)
         .all()
     )
     kg_saved = round(sum(b[0] for b in accepted_batches_qty) * KG_PER_UNIT_ASSUMPTION, 1)
@@ -108,13 +109,14 @@ def get_waste_metrics(
 def get_sales_series(
     store_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles("storeManager", "systemAdmin"))
+    current_user: dict = Depends(require_roles("manager", "admin"))
 ):
-    store = db.query(Store).filter(Store.id == store_id).first()
+    target_store_id = verify_branch_access(current_user, store_id)
+    store = db.query(Store).filter(Store.id == target_store_id).first()
     if not store:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Store with ID {store_id} not found"
+            detail=f"Store with ID {target_store_id} not found"
         )
 
     today = settings.get_effective_today()
@@ -126,7 +128,7 @@ def get_sales_series(
             func.sum(InventorySnapshot.units_sold * Product.unit_price).label("actual_revenue")
         )
         .join(Product, InventorySnapshot.product_id == Product.id)
-        .filter(Product.store_id == store_id, InventorySnapshot.snapshot_date >= start_date)
+        .filter(Product.store_id == target_store_id, InventorySnapshot.snapshot_date >= start_date)
         .group_by(InventorySnapshot.snapshot_date)
         .order_by(InventorySnapshot.snapshot_date.asc())
         .all()
@@ -159,13 +161,14 @@ def get_sales_series(
 def get_category_waste(
     store_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles("storeManager", "systemAdmin"))
+    current_user: dict = Depends(require_roles("manager", "admin"))
 ):
-    store = db.query(Store).filter(Store.id == store_id).first()
+    target_store_id = verify_branch_access(current_user, store_id)
+    store = db.query(Store).filter(Store.id == target_store_id).first()
     if not store:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Store with ID {store_id} not found"
+            detail=f"Store with ID {target_store_id} not found"
         )
 
     categories = db.query(Category).order_by(Category.id.asc()).all()
@@ -178,7 +181,7 @@ def get_category_waste(
         )
         .join(Product, WasteLog.product_id == Product.id)
         .join(Category, Product.category_id == Category.id)
-        .filter(WasteLog.store_id == store_id)
+        .filter(WasteLog.store_id == target_store_id)
         .group_by(Category.id)
         .all()
     )

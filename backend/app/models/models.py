@@ -266,7 +266,7 @@ class User(Base):
     email = Column(String(100), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(100), nullable=False)
-    role = Column(String(50), nullable=False)  # storeManager, inventoryAuditor, systemAdmin
+    role = Column(String(50), nullable=False)  # clerk, auditor, manager, admin
     store_id = Column(Integer, ForeignKey("stores.id"), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -317,3 +317,42 @@ class AlertAction(Base):
 
     def __repr__(self):
         return f"<AlertAction(id={self.id}, batch_id='{self.batch_id}', action='{self.action}', until={self.dismissed_until})>"
+
+
+class Broadcast(Base):
+    __tablename__ = "broadcasts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    title = Column(String(200), nullable=False)
+    message = Column(Text, nullable=False)
+    target_store_id = Column(Integer, ForeignKey("stores.id", ondelete="SET NULL"), nullable=True)  # None = all branches
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_by = Column(String(100), nullable=True)
+    priority = Column(String(20), default="normal", nullable=False)  # normal, urgent
+
+    target_store = relationship("Store")
+
+    def __repr__(self):
+        return f"<Broadcast(id={self.id}, title='{self.title}', target_store_id={self.target_store_id})>"
+
+
+class ModelFeedback(Base):
+    __tablename__ = "model_feedback"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    store_id = Column(Integer, ForeignKey("stores.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    feedback_date = Column(Date, nullable=False)
+    predicted_demand = Column(Float, nullable=True)
+    actual_demand = Column(Float, nullable=True)
+    spoiled_units = Column(Integer, default=0, nullable=False)
+    discrepancy = Column(Float, nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    store = relationship("Store")
+    product = relationship("Product")
+
+    def __repr__(self):
+        return f"<ModelFeedback(id={self.id}, store_id={self.store_id}, product_id={self.product_id})>"
+

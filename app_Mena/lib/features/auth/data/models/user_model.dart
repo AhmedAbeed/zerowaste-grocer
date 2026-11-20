@@ -23,6 +23,10 @@ class UserModel {
 
     UserRole role;
     switch (roleStr.toLowerCase()) {
+      case 'inventoryclerk':
+      case 'clerk':
+        role = UserRole.inventoryClerk;
+        break;
       case 'inventoryauditor':
       case 'auditor':
         role = UserRole.inventoryAuditor;

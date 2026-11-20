@@ -60,7 +60,7 @@ class AnalyticsScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     final isDark = context.isDarkMode;
 
-    if (user != null && user.role == UserRole.inventoryAuditor) {
+    if (user != null && (user.role == UserRole.inventoryAuditor || user.role == UserRole.inventoryClerk)) {
       return Scaffold(
         body: Center(
           child: Padding(

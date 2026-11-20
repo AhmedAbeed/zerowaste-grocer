@@ -14,9 +14,11 @@ from app.schemas.api_schemas import (
     ProductResponse,
     BatchResponse,
     AuditSubmitRequest,
-    AuditSubmitResponse
+    AuditSubmitResponse,
+    IncomingBatchRequest,
+    IncomingBatchResponse
 )
-from app.core.security import get_current_user, require_roles
+from app.core.security import get_current_user, require_roles, verify_branch_access
 
 router = APIRouter(tags=["inventory"])
 
@@ -31,16 +33,17 @@ def get_store_inventory(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    store = db.query(Store).filter(Store.id == store_id).first()
+    target_store_id = verify_branch_access(current_user, store_id)
+    store = db.query(Store).filter(Store.id == target_store_id).first()
     if not store:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Store with ID {store_id} not found"
+            detail=f"Store with ID {target_store_id} not found"
         )
 
     products = (
         db.query(Product)
-        .filter(Product.store_id == store_id)
+        .filter(Product.store_id == target_store_id)
         .order_by(Product.id.asc())
         .all()
     )
@@ -95,6 +98,7 @@ def get_product_batches(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Product with ID {product_id} not found"
         )
+    verify_branch_access(current_user, product.store_id)
 
     batches = (
         db.query(ProductBatch)
@@ -126,13 +130,14 @@ def get_product_batches(
 def submit_inventory_audit(
     request: AuditSubmitRequest,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles("inventoryAuditor", "storeManager", "systemAdmin"))
+    current_user: dict = Depends(require_roles("auditor"))
 ):
+    target_store_id = verify_branch_access(current_user, request.store_id)
     today = settings.get_effective_today()
     updated = 0
 
     for entry in request.entries:
-        prod = db.query(Product).filter(Product.id == entry.product_id).first()
+        prod = db.query(Product).filter(Product.id == entry.product_id, Product.store_id == target_store_id).first()
         if not prod:
             continue
 
@@ -141,11 +146,11 @@ def submit_inventory_audit(
             loss = round(entry.spoiled_qty * prod.unit_cost, 2)
             waste = WasteLog(
                 product_id=prod.id,
-                store_id=request.store_id,
+                store_id=target_store_id,
                 date=today,
                 spoiled_quantity=entry.spoiled_qty,
                 financial_loss=loss,
-                recorded_by=current_user.get("name", "Store Manager")
+                recorded_by=current_user.get("name", "Inventory Auditor")
             )
             db.add(waste)
 
@@ -213,3 +218,122 @@ def submit_inventory_audit(
         updated_count=updated,
         message=f"Audit completed successfully for {updated} items."
     )
+
+
+@router.post(
+    "/batches/incoming",
+    response_model=IncomingBatchResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Register incoming product shipment/batch and update active stock (clerk only)"
+)
+def register_incoming_batch(
+    request: IncomingBatchRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles("clerk"))
+):
+    target_store_id = verify_branch_access(current_user)
+    today = settings.get_effective_today()
+    real_today = date.today()
+
+    if request.quantity <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Batch quantity must be greater than 0."
+        )
+
+    if request.expiration_date <= today or request.expiration_date <= real_today:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Expiration date must be in the future."
+        )
+
+    clean_batch_id = request.batch_id.strip()
+    if not clean_batch_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Batch ID cannot be empty."
+        )
+
+    # 1. Product must belong to the clerk's branch
+    product = (
+        db.query(Product)
+        .filter(Product.id == request.product_id, Product.store_id == target_store_id)
+        .first()
+    )
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Product with ID {request.product_id} not found in branch {target_store_id}."
+        )
+
+    # 2. Batch ID must be globally unique across all branches (reject duplicates with 409)
+    duplicate_batch = (
+        db.query(ProductBatch)
+        .filter(ProductBatch.id == clean_batch_id)
+        .first()
+    )
+    if duplicate_batch:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Batch ID already exists"
+        )
+
+    # 3. Create batch and update stock in the SAME transaction
+    new_batch = ProductBatch(
+        id=clean_batch_id,
+        product_id=product.id,
+        received_date=today,
+        expiration_date=request.expiration_date,
+        initial_quantity=request.quantity,
+        remaining_quantity=request.quantity,
+        current_discount_pct=0.0
+    )
+    db.add(new_batch)
+
+    # Update or create InventorySnapshot for today
+    snap = (
+        db.query(InventorySnapshot)
+        .filter(
+            InventorySnapshot.product_id == product.id,
+            InventorySnapshot.snapshot_date == today
+        )
+        .first()
+    )
+    if snap:
+        snap.closing_stock += request.quantity
+    else:
+        snap = InventorySnapshot(
+            product_id=product.id,
+            snapshot_date=today,
+            opening_stock=request.quantity,
+            units_sold=0,
+            units_spoiled=0,
+            closing_stock=request.quantity
+        )
+        db.add(snap)
+
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Batch ID already exists"
+        )
+    db.refresh(new_batch)
+
+    # Active stock across all batches
+    active_stock = sum(b.remaining_quantity for b in product.batches if b.remaining_quantity > 0)
+
+    return IncomingBatchResponse(
+        status="success",
+        batch_id=new_batch.id,
+        product_id=product.id,
+        product_name=product.name,
+        store_id=target_store_id,
+        quantity=new_batch.remaining_quantity,
+        expiration_date=new_batch.expiration_date.isoformat(),
+        current_stock=active_stock,
+        message=f"Batch {new_batch.id} added with {new_batch.remaining_quantity} units. Stock updated."
+    )
+

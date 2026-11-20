@@ -105,8 +105,9 @@ def health_check():
         "service": "zerowaste-api"
     }
 
-# Mount consolidated v1 API Router under /api/v1
+# Mount consolidated v1 API Router under /api/v1 and at root for full URL compatibility
 app.include_router(api_v1_router, prefix="/api/v1")
+app.include_router(api_v1_router)
 
 if __name__ == "__main__":
     import uvicorn

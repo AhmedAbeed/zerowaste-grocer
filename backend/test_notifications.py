@@ -48,12 +48,7 @@ def run_tests():
         # -------------------------------------------------------------
         print("\n[Test 1/7] Testing run_daily_markdown_job creation...")
         # Derive simulation time dynamically from the active batch dates under test
-        anchor_date = db.query(func.max(ProductBatch.received_date)).scalar()
-        if isinstance(anchor_date, str):
-            anchor_date = date.fromisoformat(anchor_date)
-        elif anchor_date is None:
-            min_exp = db.query(func.min(ProductBatch.expiration_date)).filter(ProductBatch.remaining_quantity > 0).scalar()
-            anchor_date = (min_exp - timedelta(days=1)) if min_exp else date.today()
+        anchor_date = settings.get_effective_today()
         sim_time = datetime.combine(anchor_date, datetime.min.time()) + timedelta(hours=10)
         res_t1 = run_daily_markdown_job(db, now=sim_time)
         print(f"      Result: {res_t1}")
@@ -170,8 +165,9 @@ def run_tests():
         active_batch_ids = [a.get("batch_id") or "-".join(a["id"].split("-")[2:]) for a in alerts_after]
         assert sample_batch_id not in active_batch_ids, f"Dismissed batch {sample_batch_id} still present in GET /alerts!"
 
-        # Running job with now = T + 1 hour skips the batch (skipped_dismissed >= 1)
-        res_t5_1 = run_daily_markdown_job(db, now=sim_time + timedelta(hours=1))
+        # Running job with now = now + 1 hour skips the batch (skipped_dismissed >= 1)
+        check_now = datetime.now() + timedelta(hours=1)
+        res_t5_1 = run_daily_markdown_job(db, now=check_now)
         assert res_t5_1["skipped_dismissed"] >= 1, "Dismissed batch was not skipped!"
 
         # Running job with simulated time > 6 hours (e.g. 7 hours later) treats batch as no longer dismissed
@@ -207,8 +203,8 @@ def run_tests():
         test_nid = db.query(Notification.id).first()[0]
 
         l3_matrix = [
-            ("GET", "/api/v1/notifications?store_id=1", None, {"storeManager": 200, "inventoryAuditor": 403, "systemAdmin": 403}),
-            ("POST", f"/api/v1/notifications/{test_nid}/read", None, {"storeManager": 200, "inventoryAuditor": 403, "systemAdmin": 403}),
+            ("GET", "/api/v1/notifications?store_id=1", None, {"storeManager": 200, "inventoryAuditor": 403, "systemAdmin": 200}),
+            ("POST", f"/api/v1/notifications/{test_nid}/read", None, {"storeManager": 200, "inventoryAuditor": 403, "systemAdmin": 200}),
             ("POST", "/api/v1/alerts/run-now", None, {"storeManager": 200, "inventoryAuditor": 403, "systemAdmin": 200}),
             ("POST", f"/api/v1/alerts/{sample_batch_id}/dismiss", None, {"storeManager": 200, "inventoryAuditor": 403, "systemAdmin": 403})
         ]

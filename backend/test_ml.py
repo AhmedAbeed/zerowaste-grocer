@@ -29,8 +29,8 @@ def run_tests():
     # 1. Verify ML Service singleton & Feature Count
     service = GroceryMLService.get_instance()
     print(f"[OK] ML Service initialized successfully.")
-    print(f"[OK] Master feature names count: {len(service.master_feature_names)} (expected 192)")
-    assert len(service.master_feature_names) == 192, "Feature count must be exactly 192"
+    print(f"[OK] Master feature names count: {len(service.master_feature_names)} (expected 194)")
+    assert len(service.master_feature_names) == 194, "Feature count must be exactly 194"
 
     # 2. Test direct inference function
     test_store_id = 1
@@ -77,14 +77,17 @@ def run_tests():
     print(f"[OK] GET /health response: {health_data}")
     assert health_data == {"status": "healthy", "service": "zerowaste-api"}
 
-    # Demand prediction POST
+    # Demand prediction POST (manager authorized)
+    from app.core.security import create_access_token
+    mgr_token = create_access_token(data={"sub": "manager@zerowaste.com", "role": "manager", "role_id": "manager", "branch_id": 1, "store_id": 1})
+    headers = {"Authorization": f"Bearer {mgr_token}"}
     payload = {
         "store_id": test_store_id,
         "product_id": test_product_id,
         "lead_time": test_lead_time,
         "context_features": test_context
     }
-    pred_resp = client.post("/api/v1/predict/demand", json=payload)
+    pred_resp = client.post("/api/v1/predict/demand", json=payload, headers=headers)
     assert pred_resp.status_code == 200, f"Prediction API failed: {pred_resp.text}"
     pred_data = pred_resp.json()
     print(f"[OK] POST /api/v1/predict/demand response:")

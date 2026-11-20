@@ -54,6 +54,8 @@ DRIVER_TRANSLATIONS = {
     "season_Winter": "Winter Seasonal Profile",
     "month": "Monthly Seasonal Trend",
     "dayOfYear": "Annual Sales Cycle",
+    "sales_rolling_mean_7": "7-Day Sales Velocity",
+    "sales_rolling_mean_14": "14-Day Sales Baseline",
     "lead_time": "Procurement Lead Time Window"
 }
 

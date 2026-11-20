@@ -2,9 +2,10 @@
 app/api/v1/endpoints/prediction.py
 FastAPI router for ML demand prediction and XAI drivers.
 """
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from app.schemas.ml_schemas import PredictionRequest, PredictionResponse
 from app.services.ml_service import predict_grocery_demand, explain_prediction
+from app.core.security import require_roles, verify_branch_access
 
 router = APIRouter(prefix="/predict", tags=["prediction"])
 
@@ -15,26 +16,36 @@ router = APIRouter(prefix="/predict", tags=["prediction"])
     summary="Forecast grocery demand with XAI drivers",
     description="Accepts store_id, product_id, lead_time, and context features to generate a demand forecast and top 3 TreeSHAP drivers."
 )
-def predict_demand(request: PredictionRequest) -> PredictionResponse:
+def predict_demand(
+    request: PredictionRequest,
+    current_user: dict = Depends(require_roles("manager", "admin"))
+) -> PredictionResponse:
+    target_store_id = verify_branch_access(
+        current_user,
+        request.store_id,
+        require_for_admin=True
+    )
     try:
         predicted_demand = predict_grocery_demand(
-            store_id=request.store_id,
+            store_id=target_store_id,
             product_id=request.product_id,
             lead_time=request.lead_time,
             context_features=request.context_features
         )
         drivers = explain_prediction(
-            store_id=request.store_id,
+            store_id=target_store_id,
             product_id=request.product_id,
             lead_time=request.lead_time,
             context_features=request.context_features
         )
         return PredictionResponse(
-            store_id=request.store_id,
+            store_id=target_store_id,
             product_id=request.product_id,
             predicted_demand=predicted_demand,
             drivers=drivers
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

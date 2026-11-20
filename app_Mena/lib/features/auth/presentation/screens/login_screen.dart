@@ -45,7 +45,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
 
       ref.read(currentUserProvider.notifier).state = user;
-      if (user.role == UserRole.inventoryAuditor) {
+      if (user.storeId != null) {
+        ref.read(activeStoreIdProvider.notifier).state = user.storeId!;
+      } else {
+        ref.read(activeStoreIdProvider.notifier).state = 1;
+      }
+      if (user.role == UserRole.inventoryAuditor || user.role == UserRole.inventoryClerk) {
         context.go('/catalog');
       } else {
         context.go('/dashboard');

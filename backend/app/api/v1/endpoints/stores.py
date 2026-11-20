@@ -38,7 +38,7 @@ def get_stores(
 def create_store(
     request: StoreCreateRequest,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(require_roles("systemAdmin"))
+    current_user: dict = Depends(require_roles("admin"))
 ):
     new_store = Store(
         name=request.name,

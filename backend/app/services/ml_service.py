@@ -40,7 +40,7 @@ class GroceryMLService:
         self.model = joblib.load(model_path)
         self.master_feature_names = joblib.load(features_path)
 
-        # Verify exact 192 features exist
+        # Verify exact 194 features exist
         actual_count = len(self.master_feature_names)
         if actual_count != settings.EXPECTED_FEATURE_COUNT:
             raise ValueError(
@@ -56,11 +56,11 @@ class GroceryMLService:
         context_features: Optional[Dict[str, float]] = None
     ) -> pd.DataFrame:
         """
-        Initializes a 1-row pandas DataFrame with 0.0 for all 192 columns
+        Initializes a 1-row pandas DataFrame with 0.0 for all 194 columns
         in the exact order of master_feature_names.
         Populates store_id, product_id, lead_time, and matching context features.
         """
-        # 1-row vector aligned with 192 features
+        # 1-row vector aligned with 194 features
         df = pd.DataFrame(0.0, index=[0], columns=self.master_feature_names, dtype=float)
 
         if "store_id" in df.columns:
