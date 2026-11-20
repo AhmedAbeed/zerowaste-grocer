@@ -2,6 +2,7 @@
 test_fixes.py
 Verification suite for targeted fixes (RBAC, unauthenticated prediction, batches/incoming, and audit validation).
 """
+import uuid
 from datetime import date, timedelta
 from fastapi.testclient import TestClient
 from main import app
@@ -63,7 +64,7 @@ def test_batches_incoming_validation_and_duplicate():
     assert res_past.status_code == 400, f"Expected 400 for past expiration, got {res_past.status_code}"
 
     # 3. Duplicate batch_id -> 409
-    unique_bid = "B-TEST-DUP-FIX"
+    unique_bid = f"B-TEST-{uuid.uuid4().hex[:8]}"
     res_first = client.post(
         "/api/v1/batches/incoming",
         json={"product_id": 1, "batch_id": unique_bid, "quantity": 10, "expiration_date": future_date},
@@ -78,6 +79,15 @@ def test_batches_incoming_validation_and_duplicate():
     )
     assert res_dup.status_code == 409, f"Expected 409 on duplicate batch_id, got {res_dup.status_code}"
     assert "already exists" in res_dup.json()["detail"].lower()
+
+    # Clean up test batch
+    db = SessionLocal()
+    try:
+        db.query(ProductBatch).filter(ProductBatch.id == unique_bid).delete()
+        db.commit()
+    finally:
+        db.close()
+
     print("[PASS] /batches/incoming: quantity 0 -> 422/400, past expiration -> 400, duplicate batch_id -> 409")
 
 def test_audit_negative_on_hand_qty():
